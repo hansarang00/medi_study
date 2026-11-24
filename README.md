@@ -15,7 +15,7 @@ Gemini API를 쓰고 Vercel에 배포합니다.
 | 이름 | 필수 | 예시 |
 |---|---|---|
 | `GEMINI_API_KEY` | 예 | Google AI Studio에서 발급한 키 |
-| `GEMINI_MODEL` | 아니오 (기본값 `gemini-2.5-flash`) | `gemini-2.5-flash` |
+| `GEMINI_MODEL` | 아니오 (기본값 `gemini-3.5-flash-lite`) | `gemini-3.5-flash-lite` |
 
 Vercel 프로젝트 → Settings → Environment Variables 에 넣고 다시 배포(Redeploy)하면 적용됩니다.
 Framework Preset은 **Other**, 빌드 명령은 비워 두면 됩니다.
@@ -23,7 +23,7 @@ Framework Preset은 **Other**, 빌드 명령은 비워 두면 됩니다.
 ## 로컬 실행
 
 ```powershell
-$env:GEMINI_API_KEY="발급받은키"; $env:GEMINI_MODEL="gemini-2.5-flash"; npm run dev
+$env:GEMINI_API_KEY="발급받은키"; $env:GEMINI_MODEL="gemini-3.5-flash-lite"; npm run dev
 ```
 
 브라우저에서 http://localhost:3000 을 엽니다.

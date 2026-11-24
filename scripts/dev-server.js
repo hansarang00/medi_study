@@ -1,5 +1,5 @@
 // 로컬 테스트용 간단 서버 (Vercel 없이 실행)
-// 사용법(PowerShell): $env:GEMINI_API_KEY="..."; $env:GEMINI_MODEL="gemini-2.5-flash"; npm run dev
+// 사용법(PowerShell): $env:GEMINI_API_KEY="..."; $env:GEMINI_MODEL="gemini-3.5-flash-lite"; npm run dev
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";

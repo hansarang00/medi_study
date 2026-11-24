@@ -1,5 +1,5 @@
 // Vercel Serverless Function: POST /api/chat
-// 환경변수: GEMINI_API_KEY (필수), GEMINI_MODEL (선택, 예: gemini-2.5-flash)
+// 환경변수: GEMINI_API_KEY (필수), GEMINI_MODEL (선택, 예: gemini-3.5-flash-lite)
 import { search } from "../lib/rag.js";
 
 const SYSTEM_PROMPT = `당신은 레스터 레븐슨의 책 《궁극의 자유를 위한 열쇠》(Keys To The Ultimate Freedom)의 내용에 기초해서만 답하는 도우미입니다.
@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const model = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
   if (!apiKey) {
     return res.status(500).json({ error: "서버에 GEMINI_API_KEY 환경변수가 설정되지 않았습니다." });
   }

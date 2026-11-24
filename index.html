@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>궁극의 자유를 위한 열쇠 · 문서 기반 챗봇</title>
+<style>
+  :root {
+    --bg: #f6f4ef; --panel: #ffffff; --ink: #2a2723; --muted: #7a736a;
+    --accent: #6b5b3e; --user: #ece6da; --line: #e2dccf;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1b1a18; --panel: #24221f; --ink: #ece7de; --muted: #a39b8f;
+      --accent: #d2b98a; --user: #33302b; --line: #3a3631; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  .wrap { max-width: 760px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; padding: 0 16px; }
+  header { padding: 28px 0 16px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  header p { margin: 0; color: var(--muted); font-size: .9rem; }
+  #log { flex: 1; padding: 20px 0; display: flex; flex-direction: column; gap: 14px; }
+  .msg { padding: 12px 16px; border-radius: 12px; line-height: 1.7; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; }
+  .user { background: var(--user); align-self: flex-end; max-width: 85%; }
+  .bot { background: var(--panel); border: 1px solid var(--line); }
+  .bot.err { border-color: #c0614f; color: #c0614f; }
+  details { margin-top: 10px; font-size: .85rem; color: var(--muted); white-space: normal; }
+  details summary { cursor: pointer; }
+  details li { margin: 6px 0; }
+  details b { color: var(--accent); font-weight: 600; }
+  .hints { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hints button { border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    padding: 8px 12px; border-radius: 999px; cursor: pointer; font: inherit; font-size: .88rem; }
+  .hints button:hover { border-color: var(--accent); }
+  form { position: sticky; bottom: 0; background: var(--bg); padding: 12px 0 20px; display: flex; gap: 8px; }
+  textarea { flex: 1; resize: none; min-height: 48px; max-height: 160px; padding: 12px 14px; font: inherit;
+    border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--ink); }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  button.send { border: 0; border-radius: 12px; padding: 0 18px; background: var(--accent); color: var(--bg);
+    font: inherit; font-weight: 600; cursor: pointer; }
+  button.send:disabled { opacity: .5; cursor: default; }
+  .typing { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>《궁극의 자유를 위한 열쇠》 챗봇</h1>
+    <p>레스터 레븐슨의 책 내용을 검색해서 그 근거로만 답합니다.</p>
+  </header>
+
+  <main id="log">
+    <div class="msg bot">안녕하세요. 책에 대해 궁금한 것을 물어보세요.
+      <div class="hints" style="margin-top:12px">
+        <button type="button">행복은 무엇에 달려 있나요?</button>
+        <button type="button">레스터는 어떻게 깨달음을 얻었나요?</button>
+        <button type="button">카르마란 무엇인가요?</button>
+        <button type="button">에고를 내려놓는 방법은?</button>
+      </div>
+    </div>
+  </main>
+
+  <form id="f">
+    <textarea id="q" placeholder="질문을 입력하세요 (Enter 전송, Shift+Enter 줄바꿈)" rows="1"></textarea>
+    <button class="send" id="send" type="submit">보내기</button>
+  </form>
+</div>
+
+<script>
+  const log = document.getElementById("log");
+  const form = document.getElementById("f");
+  const q = document.getElementById("q");
+  const sendBtn = document.getElementById("send");
+  const history = [];
+
+  function add(cls, text) {
+    const div = document.createElement("div");
+    div.className = "msg " + cls;
+    div.textContent = text;
+    log.appendChild(div);
+    div.scrollIntoView({ behavior: "smooth", block: "end" });
+    return div;
+  }
+
+  function addSources(div, sources) {
+    if (!sources || !sources.length) return;
+    const d = document.createElement("details");
+    const s = document.createElement("summary");
+    s.textContent = `참고한 문서 구절 ${sources.length}개`;
+    d.appendChild(s);
+    const ul = document.createElement("ul");
+    for (const src of sources) {
+      const li = document.createElement("li");
+      const b = document.createElement("b");
+      b.textContent = `[${src.n}] ${src.chapter}`;
+      li.appendChild(b);
+      li.appendChild(document.createElement("br"));
+      li.appendChild(document.createTextNode(src.excerpt));
+      ul.appendChild(li);
+    }
+    d.appendChild(ul);
+    div.appendChild(d);
+  }
+
+  async function ask(text) {
+    add("user", text);
+    const pending = add("bot typing", "문서를 찾아보는 중…");
+    sendBtn.disabled = true;
+    try {
+      const r = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text, history }),
+      });
+      const data = await r.json().catch(() => ({ error: `서버 응답 오류 (HTTP ${r.status})` }));
+      if (!r.ok || data.error) throw new Error(data.error || `HTTP ${r.status}`);
+      pending.className = "msg bot";
+      pending.textContent = data.answer;
+      addSources(pending, data.sources);
+      history.push({ role: "user", text }, { role: "model", text: data.answer });
+      if (history.length > 12) history.splice(0, history.length - 12);
+    } catch (e) {
+      pending.className = "msg bot err";
+      pending.textContent = "오류: " + e.message;
+    } finally {
+      sendBtn.disabled = false;
+      q.focus();
+    }
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = q.value.trim();
+    if (!text || sendBtn.disabled) return;
+    q.value = "";
+    q.style.height = "";
+    ask(text);
+  });
+  q.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); form.requestSubmit(); }
+  });
+  q.addEventListener("input", () => { q.style.height = "auto"; q.style.height = q.scrollHeight + "px"; });
+  document.querySelectorAll(".hints button").forEach((b) =>
+    b.addEventListener("click", () => { if (!sendBtn.disabled) ask(b.textContent); })
+  );
+</script>
+</body>
+</html>

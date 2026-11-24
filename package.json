@@ -1,0 +1,14 @@
+{
+  "name": "medi-study",
+  "version": "1.0.0",
+  "private": true,
+  "description": "《궁극의 자유를 위한 열쇠》 문서 기반 RAG 챗봇 (Gemini + Vercel)",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev-server.js",
+    "test:search": "node scripts/test-search.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
